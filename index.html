@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>中阿含 221 經 · 箭喻經</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FDFAF4; --bg-2:#F5EDD6; --bg-3:#EFE4C7;
+  --ink:#2E2419; --ink-2:#5B4A36; --ink-3:#8B7656; --ink-4:#B5A584;
+  --accent:#3A5A7A;
+  --accent-2:#B8843A;
+  --t1:64px; --t2:44px; --t3:26px; --t4:14px;
+  /* 右下角頁碼列淨空區：.slide 底部一律保留這個高度，內容不得侵入 */
+  --nav-safe:120px;
+  --serif:"Noto Serif TC", "Source Han Serif TC", serif;
+  --sans:"Noto Sans TC", "Source Han Sans TC", sans-serif;
+  --mono:"JetBrains Mono", monospace;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased;}
+body{position:relative;}
+
+#progress{position:fixed; top:0; left:0; height:3px; width:0%; background:linear-gradient(90deg, var(--accent), var(--accent-2)); z-index:100; transition:width .55s ease;}
+#section-tag{position:fixed; top:18px; left:28px; font-family:var(--mono); font-size:12px; letter-spacing:2px; color:var(--ink-3); z-index:100;}
+#section-tag::before{content:"— "; color:var(--accent-2);}
+#section-tag::after{content:" —"; color:var(--accent-2);}
+#navbar{
+  position:fixed; bottom:16px; right:22px; z-index:100;
+  display:flex; align-items:center; gap:6px;
+  font-family:var(--mono);
+  /* 淡底襯板：萬一某頁需要捲動，捲動中的內容也不會透過頁碼列糊在一起 */
+  background:rgba(253,250,244,.9); border-radius:22px; padding:1px 6px;
+  backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+}
+.nav-arrow{
+  background:none; border:none; cursor:pointer;
+  color:var(--ink-3); font-size:34px; line-height:1;
+  padding:2px 10px; border-radius:6px;
+  font-family:var(--serif); font-weight:300;
+  transition:color .15s, background .15s;
+}
+.nav-arrow:hover{color:var(--accent); background:rgba(58,90,122,.08);}
+.nav-arrow:disabled{color:var(--ink-4); cursor:default; background:none;}
+.nav-count{font-size:14px; color:var(--ink-3); letter-spacing:1px; margin:0 4px;}
+#curPage{color:var(--ink); font-weight:600;}
+.nav-count .sep{color:var(--ink-4); margin:0 3px;}
+
+/* === 三件套 A：講師白板（預設常開） === */
+.side-wb{display:block;}
+.side-wb-toggle{
+  position:fixed; top:14px; right:14px; z-index:1001;
+  background:var(--accent); color:#fff; border:none;
+  padding:8px 16px; border-radius:20px; cursor:pointer;
+  font-family:var(--mono); font-size:13px; letter-spacing:1.5px;
+  box-shadow:0 2px 8px rgba(46,36,25,.18);
+  opacity:.88; transition:opacity .2s, background .2s;
+}
+.side-wb-toggle:hover{opacity:1; background:#2a4860;}
+.side-wb-panel{
+  position:fixed; top:0; right:0; width:360px; height:100vh;
+  background:#fffdf6; border-left:1px solid rgba(46,36,25,.16);
+  box-shadow:-6px 0 24px rgba(46,36,25,.12);
+  display:flex; flex-direction:column;
+  transform:translateX(100%); transition:transform .3s ease;
+  z-index:1000;
+}
+.side-wb.open .side-wb-panel{transform:translateX(0);}
+.side-wb.open .side-wb-toggle{display:none;}
+.side-wb-header{
+  padding:14px 20px; background:var(--bg-2);
+  border-bottom:1px solid rgba(46,36,25,.12);
+  display:flex; justify-content:space-between; align-items:center;
+  font-family:var(--serif); font-size:16px; font-weight:700; color:var(--accent);
+}
+.side-wb-header .actions{display:flex; gap:6px;}
+.side-wb-header button{
+  background:transparent; border:1px solid rgba(46,36,25,.18);
+  border-radius:5px; padding:5px 11px; font-size:12px;
+  color:var(--ink-2); cursor:pointer; font-family:var(--sans);
+}
+.side-wb-header button:hover{background:var(--bg-3); color:var(--ink);}
+.side-wb-area{
+  flex:1; padding:20px 22px;
+  font-size:30px; line-height:1.7; color:var(--ink);
+  outline:none; overflow-y:auto;
+  font-family:var(--serif);
+}
+
+.slide{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  padding:56px 72px var(--nav-safe);
+  opacity:0; pointer-events:none;
+  transition:opacity .55s ease, transform .55s ease;
+  transform:translateY(16px);
+  overflow-x:hidden; overflow-y:auto;
+}
+.slide.active{opacity:1; pointer-events:auto; transform:translateY(0);}
+/* 內容框不再用 max-height 硬夾（舊寫法會讓子元素溢出到頁碼列上疊字）；
+   改用上下 auto margin：內容短時垂直置中，內容長時自動貼上緣並可捲動，
+   底部一律止於 --nav-safe 淨空區之上。 */
+.slide-inner{width:100%; max-width:1500px; margin-top:auto; margin-bottom:auto;}
+
+.kicker{font-family:var(--mono); font-size:14px; letter-spacing:3px; color:var(--accent-2); text-transform:uppercase; margin-bottom:16px;}
+h1{font-family:var(--serif); font-weight:900; font-size:var(--t1); line-height:1.15; color:var(--ink); letter-spacing:2px;}
+h2{font-family:var(--serif); font-weight:700; font-size:var(--t2); line-height:1.3; color:var(--ink); letter-spacing:1px; margin-bottom:20px;}
+h3{font-family:var(--serif); font-weight:700; font-size:32px; color:var(--ink); margin-bottom:12px;}
+p, li{font-family:var(--sans); font-size:26px; line-height:1.75; color:var(--ink-2);}
+.lead{font-size:32px; line-height:1.65; color:var(--ink-2);}
+.muted{color:var(--ink-3); font-size:22px; line-height:1.55;}
+.divider{width:60px; height:3px; background:var(--accent-2); margin:18px 0 26px;}
+.em{color:var(--accent);}
+.em2{color:var(--accent-2);}
+
+/* === 1 封面 === */
+.cover{background:var(--bg-2);}
+.cover::before{
+  content:""; position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(58,90,122,.10), transparent 55%),
+    radial-gradient(ellipse at 82% 78%, rgba(184,132,58,.15), transparent 55%);
+}
+.cover .slide-inner{position:relative; z-index:2;}
+.cover .title{font-size:96px; line-height:1.05; font-weight:900; letter-spacing:8px; color:var(--ink);}
+.cover .sub{font-size:34px; color:var(--ink-2); margin-top:24px; letter-spacing:4px;}
+.cover .meta{margin-top:48px; font-family:var(--mono); font-size:15px; color:var(--ink-3); letter-spacing:2px;}
+.cover .mark{position:absolute; right:60px; bottom:var(--nav-safe); font-family:var(--serif); font-weight:900; font-size:180px; color:rgba(58,90,122,.08); letter-spacing:20px; line-height:1; z-index:1; user-select:none;}
+
+/* === 2 經文全文對照框 === */
+.sutra{align-items:stretch; padding-top:40px;}
+.sutra .slide-inner{display:flex; flex-direction:column; min-height:0; height:100%; margin:0;}
+.sutra .su-head{text-align:center; flex:0 0 auto;}
+.sutra .kicker{margin-bottom:10px;}
+.sutra .su-q{font-family:var(--serif); font-weight:900; font-size:40px; line-height:1.25; color:var(--ink); letter-spacing:3px;}
+.sutra .su-q .em{color:var(--accent);}
+.sutra .su-sub{margin:8px 0 12px; color:var(--ink-3); font-size:22px; letter-spacing:2px;}
+.sutra .su-sub .hint{color:var(--accent-2);}
+.su-box{
+  flex:1 1 auto; min-height:0;
+  overflow-y:auto; overflow-x:hidden;
+  overscroll-behavior:contain;
+  background:var(--bg-2);
+  border-left:5px solid var(--accent);
+  border-radius:8px;
+  padding:22px 40px 22px 36px;
+  box-shadow:inset 0 -14px 18px -14px rgba(46,36,25,.18);
+}
+.su-box p{
+  font-family:var(--serif); font-size:30px; line-height:1.9;
+  color:var(--ink); letter-spacing:1px; text-indent:2em;
+  margin-bottom:12px;
+}
+.su-box p:last-child{margin-bottom:0;}
+.su-box p.dia{color:var(--accent); font-weight:500;}
+.su-box{scrollbar-width:thin; scrollbar-color:var(--accent) var(--bg-3);}
+.su-box::-webkit-scrollbar{width:12px;}
+.su-box::-webkit-scrollbar-track{background:var(--bg-3); border-radius:8px; margin:6px 0;}
+.su-box::-webkit-scrollbar-thumb{
+  background:linear-gradient(180deg, var(--accent), #2a4860);
+  border:3px solid var(--bg-3); border-radius:8px;
+}
+.su-box::-webkit-scrollbar-thumb:hover{background:var(--accent-2);}
+.su-foot{flex:0 0 auto; margin-top:10px; text-align:center;
+  font-family:var(--mono); font-size:16px; color:var(--ink-3); letter-spacing:2px;}
+
+/* === 3 場景（單欄居中） === */
+.scene-plain{text-align:center;}
+.scene-plain h2{font-size:52px; margin-bottom:14px;}
+.scene-plain .glyph{font-family:var(--serif); font-weight:900; font-size:84px; color:var(--accent); opacity:.15; line-height:1; letter-spacing:-4px; margin:8px 0 24px;}
+.scene-plain .lead{max-width:900px; margin:0 auto; font-size:30px;}
+.scene-plain .meta-row{display:flex; justify-content:center; gap:28px; margin-top:32px; flex-wrap:wrap;}
+.scene-plain .meta-card{background:var(--bg-2); border-top:3px solid var(--accent-2); border-radius:8px; padding:20px 30px; min-width:220px;}
+.scene-plain .meta-card .k{font-family:var(--mono); font-size:17px; color:var(--accent-2); letter-spacing:2px; margin-bottom:8px;}
+.scene-plain .meta-card .v{font-family:var(--serif); font-weight:700; font-size:28px; color:var(--ink);}
+
+/* === 4 大問句 === */
+.bigq{text-align:center;}
+.bigq .q{font-family:var(--serif); font-weight:900; font-size:72px; line-height:1.3; color:var(--ink); letter-spacing:4px;}
+.bigq .q .em{color:var(--accent);}
+.bigq .q .em2{color:var(--accent-2);}
+.bigq .meta{margin-top:36px; color:var(--ink-3); font-size:24px; letter-spacing:2px;}
+.bigq .dialog{margin-top:40px; display:grid; grid-template-columns:1fr 1fr; gap:36px; max-width:1200px; margin-left:auto; margin-right:auto;}
+.bigq .dialog .b{background:var(--bg-2); padding:26px 30px; border-radius:10px; border-left:5px solid var(--accent-2); text-align:left;}
+.bigq .dialog .b .who{font-family:var(--mono); font-size:17px; color:var(--accent-2); letter-spacing:2px; margin-bottom:8px;}
+.bigq .dialog .b .txt{font-family:var(--serif); font-size:26px; color:var(--ink); line-height:1.55;}
+
+/* === 5 定義卡（兩問兩答） === */
+.def{display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:stretch;}
+.def .card{background:var(--bg-2); border-radius:12px; padding:36px 34px; display:flex; flex-direction:column;}
+.def .card.dark{background:rgba(46,36,25,.92); color:var(--bg);}
+.def .card.light{background:var(--bg-2); border-top:5px solid var(--accent);}
+.def .card .cap{font-family:var(--mono); font-size:17px; letter-spacing:3px; margin-bottom:12px;}
+.def .card.dark .cap{color:var(--accent-2);}
+.def .card.light .cap{color:var(--accent);}
+.def .card h3{font-family:var(--serif); font-weight:900; font-size:56px; letter-spacing:6px; margin-bottom:18px; line-height:1;}
+.def .card.dark h3{color:var(--bg);}
+.def .card.light h3{color:var(--ink);}
+.def .card .body{font-size:26px; line-height:1.7;}
+.def .card.dark .body{color:var(--bg-3);}
+.def .card.light .body{color:var(--ink-2);}
+.def .card .body strong{color:var(--accent-2); font-weight:600;}
+.def .card.light .body strong{color:var(--accent); font-weight:700;}
+
+/* 三節鏈（第二問流程） */
+.qchain{margin-top:36px; display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap;}
+.qchain .node{background:rgba(46,36,25,.92); color:var(--bg); padding:12px 22px; border-radius:20px; font-family:var(--serif); font-size:24px;}
+.qchain .node.ok{background:var(--accent);}
+.qchain .node.no{background:var(--accent-2);}
+.qchain .arr{color:var(--accent-2); font-size:28px; font-family:var(--serif);}
+
+/* === 六 五受陰 / 卡片網格 === */
+.five{}
+.five h2{text-align:center; margin-bottom:12px; font-size:52px;}
+.five .sub{text-align:center; color:var(--ink-3); font-size:24px; margin-bottom:42px; letter-spacing:1px;}
+.five-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:20px;}
+.five-card{background:var(--bg-2); border-top:4px solid var(--accent); border-radius:10px; padding:28px 18px; text-align:center;}
+.five-card .glyph{font-family:var(--serif); font-weight:900; font-size:70px; color:var(--accent); margin-bottom:14px; line-height:1;}
+.five-card .name{font-family:var(--serif); font-size:26px; font-weight:700; color:var(--ink); margin-bottom:10px;}
+.five-card .desc{font-size:22px; color:var(--ink-2); line-height:1.55;}
+.five .note{margin-top:32px; background:var(--bg-3); padding:22px 32px; border-radius:8px; text-align:center; font-family:var(--serif); font-size:26px; color:var(--ink); line-height:1.6;}
+.five .note strong{color:var(--accent); font-weight:700;}
+
+/* 四蓮花卡 */
+.flower-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:20px;}
+.flower-card{background:var(--bg-2); border-top:6px solid var(--accent); border-radius:10px; padding:26px 18px; text-align:center;}
+.flower-card .fname{font-family:var(--serif); font-size:28px; font-weight:700; color:var(--ink); margin-bottom:10px;}
+.flower-card .fdesc{font-size:22px; color:var(--ink-2); line-height:1.55;}
+
+/* === 七 多卡橫排（譬喻／步驟） === */
+.aspects{display:grid; grid-template-columns:repeat(5,1fr); gap:20px;}
+.aspects.c3{grid-template-columns:repeat(3,1fr);}
+.aspects.c4{grid-template-columns:repeat(4,1fr);}
+.aspects .card{background:var(--bg-2); border-left:5px solid var(--accent-2); border-radius:10px; padding:24px 22px;}
+.aspects .card .n{font-family:var(--mono); font-size:16px; color:var(--accent-2); letter-spacing:2px;}
+.aspects .card .title{font-family:var(--serif); font-weight:900; font-size:44px; color:var(--ink); margin:6px 0 12px; letter-spacing:2px;}
+.aspects .card .desc{font-size:23px; color:var(--ink-2); line-height:1.6;}
+.aspects .card .desc .k{color:var(--accent); font-weight:600;}
+.aspects-head{text-align:center; margin-bottom:36px;}
+.aspects-head h2{font-size:50px; margin-bottom:10px;}
+.aspects-head .sub{color:var(--ink-3); font-size:22px; letter-spacing:1px;}
+
+/* 底部引文條 */
+.strip{margin-top:32px; background:var(--bg-3); padding:22px 32px; border-radius:8px; text-align:center; font-family:var(--serif); font-size:26px; color:var(--ink); line-height:1.6;}
+.strip strong{color:var(--accent); font-weight:700;}
+
+/* === 八 左文右引（矛盾的結） === */
+.inner-result{display:grid; grid-template-columns:1fr 1.2fr; gap:52px; align-items:center;}
+.inner-result .left h2{font-size:52px; margin-bottom:16px;}
+.inner-result .left .lead{font-size:26px;}
+.inner-result .right{background:var(--bg-2); border-left:5px solid var(--accent); padding:34px 40px; border-radius:8px;}
+.inner-result .right .quote{font-family:var(--serif); font-size:32px; line-height:1.85; color:var(--ink); letter-spacing:1px;}
+.inner-result .right .src{margin-top:20px; font-family:var(--mono); font-size:16px; color:var(--ink-3); letter-spacing:2px;}
+.inner-result .chain{margin-top:26px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;}
+.inner-result .chain .node{background:rgba(46,36,25,.92); color:var(--bg); padding:12px 22px; border-radius:20px; font-family:var(--serif); font-size:24px;}
+.inner-result .chain .arr{color:var(--accent-2); font-size:28px; font-family:var(--serif);}
+
+/* === 結攝 === */
+.summary{text-align:center;}
+.summary h2{font-size:56px; margin-bottom:14px;}
+.summary .lead{font-size:30px; max-width:1000px; margin:0 auto;}
+.summary .core{margin-top:26px; background:var(--bg-2); border-radius:12px; padding:30px 36px; border-top:5px solid var(--accent);}
+.summary .core .k{font-family:var(--mono); font-size:17px; letter-spacing:3px; color:var(--accent-2); margin-bottom:14px;}
+.summary .core .q{font-family:var(--serif); font-weight:900; font-size:44px; line-height:1.45; color:var(--ink); letter-spacing:3px;}
+.summary .core .q .em{color:var(--accent);}
+.summary .steps-row{display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:24px;}
+.summary .steps-row .st{background:var(--bg-3); padding:22px 20px; border-radius:8px;}
+.summary .steps-row .st .n{font-family:var(--mono); color:var(--accent-2); font-size:16px; letter-spacing:2px;}
+.summary .steps-row .st .t{font-family:var(--serif); font-weight:700; font-size:24px; color:var(--ink); margin-top:6px;}
+.summary .steps-row .st .d{font-size:22px; color:var(--ink-2); margin-top:6px; line-height:1.55;}
+
+/* === CTA === */
+.cta{align-items:center;}
+.cta::before{
+  content:""; position:absolute; inset:0;
+  background:
+    radial-gradient(circle at 15% 25%, rgba(58,90,122,.14), transparent 60%),
+    radial-gradient(circle at 88% 82%, rgba(184,132,58,.18), transparent 55%);
+}
+.cta .slide-inner{position:relative; z-index:2; padding-top:0; margin-top:auto; margin-bottom:auto; text-align:center;}
+.cta .kicker{margin-bottom:12px;}
+.cta h1{font-size:72px; letter-spacing:6px; line-height:1.15;}
+.cta .lead{margin-top:20px; font-size:32px; line-height:1.55; max-width:940px;}
+.cta .cta-card{margin-top:34px; background:rgba(46,36,25,.92); color:var(--bg); padding:28px 36px; border-radius:10px; max-width:900px;}
+.cta .cta-card .label{font-family:var(--mono); font-size:16px; letter-spacing:3px; color:var(--accent-2);}
+.cta .cta-card .action{font-family:var(--serif); font-size:32px; line-height:1.5; margin-top:10px; color:var(--bg);}
+.cta .cta-card .small{font-size:21px; color:var(--ink-4); margin-top:14px;}
+
+@media (max-width:1100px){
+  .slide{padding:56px 40px var(--nav-safe);}
+  h1{font-size:44px;}
+  .cover .title{font-size:60px;}
+  .bigq .q{font-size:44px;}
+  .def, .inner-result, .bigq .dialog{grid-template-columns:1fr !important; gap:20px;}
+  .five-grid, .aspects, .aspects.c3, .aspects.c4, .flower-grid{grid-template-columns:repeat(2,1fr);}
+  .summary .steps-row{grid-template-columns:1fr;}
+}
+
+@media (max-width:720px){
+  :root{--nav-safe:104px;}
+  .slide{padding:48px 16px var(--nav-safe); overflow-y:auto;}
+  .sutra{padding-top:34px;}
+  .slide-inner{max-width:100%;}
+
+  #section-tag{top:12px; left:14px; font-size:10px; letter-spacing:1.5px;}
+  #progress{height:2px;}
+  #navbar{bottom:8px; right:12px;}
+  .nav-arrow{font-size:26px; padding:2px 8px;}
+  .nav-count{font-size:12px;}
+
+  h1{font-size:34px !important; letter-spacing:1.5px;}
+  h2{font-size:26px !important;}
+  h3{font-size:22px;}
+  p, li, .lead{font-size:17px; line-height:1.6;}
+  .muted{font-size:14px;}
+  .kicker{font-size:11px; letter-spacing:1.5px;}
+
+  .cover .title{font-size:38px; letter-spacing:3px;}
+  .cover .sub{font-size:16px; margin-top:12px; letter-spacing:2px;}
+  .cover .meta{font-size:11px; margin-top:20px;}
+  .cover .mark{font-size:80px; right:20px; bottom:var(--nav-safe);}
+
+  .sutra .su-q{font-size:24px; letter-spacing:2px;}
+  .sutra .su-sub{font-size:13px;}
+  .su-box{padding:16px 18px;}
+  .su-box p{font-size:16px; line-height:1.85;}
+
+  .scene-plain h2{font-size:26px !important;}
+  .scene-plain .glyph{font-size:56px;}
+  .scene-plain .lead{font-size:16px;}
+  .scene-plain .meta-card{padding:12px 18px; min-width:130px;}
+  .scene-plain .meta-card .k{font-size:13px;}
+  .scene-plain .meta-card .v{font-size:19px;}
+
+  .bigq .q{font-size:26px; letter-spacing:2px;}
+  .bigq .meta{font-size:13px;}
+  .bigq .dialog .b .txt{font-size:15px;}
+
+  .def .card{padding:22px 20px;}
+  .def .card h3{font-size:34px; letter-spacing:3px;}
+  .def .card .body{font-size:16px;}
+  .def .card .cap{font-size:11px;}
+
+  .qchain .node{font-size:13px; padding:6px 12px;}
+  .qchain .arr{font-size:18px;}
+
+  .five h2{font-size:26px !important;}
+  .five .sub{font-size:13px; margin-bottom:22px;}
+  .five-grid{grid-template-columns:repeat(5,1fr); gap:6px;}
+  .five-card{padding:12px 4px;}
+  .five-card .glyph{font-size:26px; margin-bottom:6px;}
+  .five-card .name{font-size:13px; margin-bottom:4px;}
+  .five-card .desc{font-size:10px; line-height:1.4;}
+  .five .note{font-size:14px; padding:12px 16px;}
+
+  .flower-grid{grid-template-columns:repeat(2,1fr); gap:10px;}
+  .flower-card{padding:14px 10px;}
+  .flower-card .fname{font-size:18px; margin-bottom:6px;}
+  .flower-card .fdesc{font-size:13px;}
+
+  .aspects, .aspects.c3, .aspects.c4{grid-template-columns:repeat(2,1fr); gap:10px;}
+  .aspects .card{padding:14px 12px; border-left-width:3px;}
+  .aspects .card .n{font-size:9px;}
+  .aspects .card .title{font-size:22px; margin:4px 0 6px;}
+  .aspects .card .desc{font-size:12px; line-height:1.45;}
+  .aspects-head h2{font-size:26px !important;}
+  .aspects-head .sub{font-size:13px;}
+
+  .strip{font-size:14px; padding:12px 16px;}
+
+  .inner-result .left h2{font-size:26px !important;}
+  .inner-result .right{padding:18px 20px;}
+  .inner-result .right .quote{font-size:16px;}
+  .inner-result .chain .node{font-size:13px; padding:6px 12px;}
+  .inner-result .chain .arr{font-size:18px;}
+
+  .summary h2{font-size:28px !important;}
+  .summary .lead{font-size:16px;}
+  .summary .core{padding:22px 20px;}
+  .summary .core .q{font-size:22px; letter-spacing:2px;}
+  .summary .steps-row .t{font-size:16px;}
+  .summary .steps-row .d{font-size:13px;}
+
+  .cta .slide-inner{padding-top:20px;}
+  .cta h1{font-size:38px !important; letter-spacing:2px;}
+  .cta .lead{font-size:17px; margin-top:12px;}
+  .cta .cta-card{padding:16px 18px; margin-top:18px;}
+  .cta .cta-card .label{font-size:11px;}
+  .cta .cta-card .action{font-size:18px;}
+  .cta .cta-card .small{font-size:13px;}
+
+  .side-wb-panel{width:90vw; max-width:360px;}
+  .side-wb-area{font-size:18px; line-height:1.6;}
+  .side-wb-toggle{top:10px; right:10px; padding:6px 12px; font-size:12px;}
+}
+
+/* ===== 2026-09-23 新版面 ===== */
+.sutra{padding:64px 56px 76px;}
+.su-box{padding:30px 48px 30px 44px;}
+.su-box p{font-size:34px; line-height:1.85;}
+.passage{margin-top:28px; background:var(--bg-2); border-left:5px solid var(--accent); border-radius:8px; padding:16px 32px 18px; text-align:left;}
+.passage .tag{font-family:var(--mono); font-size:14px; letter-spacing:3px; color:var(--accent-2); margin-bottom:6px;}
+.passage .ptxt{font-family:var(--serif); font-size:26px; line-height:1.72; color:var(--ink); letter-spacing:.5px;}
+.passage .ptxt .em{color:var(--accent); font-weight:700;}
+.four-grid{grid-template-columns:repeat(4,1fr);}
+.five .sub{margin-bottom:26px;}
+.five-card .glyph{font-size:60px;}
+.aspects.c2{grid-template-columns:repeat(2,1fr);}
+.aspects-head{margin-bottom:26px;}
+.aspects .card .title{font-size:38px;}
+.qchain{margin-top:18px;}
+.qchain .node{font-size:26px; padding:12px 24px;}
+.qchain.chips{gap:14px;}
+.bigq .q{font-size:64px;}
+.bigq .dialog{margin-top:26px;}
+.summary .steps-row{margin-top:18px;}
+@media (max-width:1100px){
+  .aspects.c2{grid-template-columns:1fr;}
+  .four-grid{grid-template-columns:repeat(2,1fr);}
+}
+@media (max-width:720px){
+  .sutra{padding:52px 12px 64px;}
+  .su-box{padding:16px 18px;}
+  .su-box p{font-size:18px;}
+  .passage{padding:12px 14px; margin-top:16px;}
+  .passage .ptxt{font-size:15px; line-height:1.65;}
+  .passage .tag{font-size:10px;}
+  .four-grid{grid-template-columns:repeat(4,1fr);}
+  .qchain .node{font-size:13px; padding:6px 12px;}
+  .aspects .card .title{font-size:22px;}
+}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="navbar">
+  <button class="nav-arrow" id="prevBtn" aria-label="上一頁">‹</button>
+  <span class="nav-count"><span id="curPage">1</span><span class="sep">/</span><span id="totalPage">20</span></span>
+  <button class="nav-arrow" id="nextBtn" aria-label="下一頁">›</button>
+</div>
+
+<!-- 講師白板（預設常開） -->
+<div id="side-wb" class="side-wb">
+  <button class="side-wb-toggle" onclick="document.getElementById('side-wb').classList.add('open')" title="開啟白板">✎ 白板</button>
+  <div class="side-wb-panel">
+    <div class="side-wb-header">
+      <span>講師白板</span>
+      <div class="actions">
+        <button onclick="if(confirm('清空白板內容？')){document.getElementById('wb-area').innerHTML='';localStorage.removeItem('m221-wb');}">清空</button>
+        <button onclick="document.getElementById('side-wb').classList.remove('open')">收合 ›</button>
+      </div>
+    </div>
+    <div id="wb-area" class="side-wb-area" contenteditable="true" spellcheck="false"></div>
+  </div>
+</div>
+
+<!-- ===== 1 ===== -->
+<section class="slide active cover" data-slide="1">
+  <div class="slide-inner">
+    <div class="kicker">中阿含 · 二二一</div>
+    <div class="title">毒箭<span style="color:var(--accent-2)">先拔</span></div>
+    <div class="sub">鬘童子的十個難題<br>佛說箭喻：先拔箭，別先問箭</div>
+  </div>
+  <div class="mark">箭</div>
+</section>
+<!-- ===== 2 ===== -->
+<section class="slide sutra" data-slide="2">
+  <div class="slide-inner">
+    <div class="su-box" id="suBox" tabindex="0">
+      <p>我聞如是：一時，佛遊舍衛國，在勝林給孤獨園。</p>
+      <p>爾時，尊者鬘童子獨安{靖}[靜]處，燕坐思惟，心作是念：「所謂此見，世尊捨置、除卻，不盡通說，謂：世有常，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？我不欲此，我不忍此，我不可此。若世尊為我一向說世有常者，我從彼學梵行；若世尊不為我一向說世有常者，我當難詰彼，捨之而去。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？若世尊為我一向說此是真諦，餘皆虛妄言者，我從彼學梵行；若世尊不為我一向說此是真諦，餘皆虛妄言者，我當難詰彼，捨之而去。」</p>
+      <p>於是，尊者鬘童子則於晡時從燕坐起，往詣佛所，稽首作禮，卻坐一面，白曰：</p>
+      <p class="dia">「世尊！我今獨安{靖}[靜]處，燕坐思惟，心作是念：『所謂此見，世尊捨置除卻，不盡通說，謂：世有常，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？我不欲此，我不忍此，我不可此。若世尊一向知世有常者，世尊！當為我說。若世尊不一向知世有常者，當直言不知也。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？若世尊一向知此是真諦，餘皆虛妄言者，世尊！當為我說。若世尊不一向知此是真諦，餘皆虛妄言者，當直言不知也。』」</p>
+      <p>世尊問曰：</p>
+      <p class="dia">「鬘童子！我本頗為汝如是說世有常，汝來從我學梵行耶？」</p>
+      <p class="dia">鬘童子答曰：「不也，世尊！」</p>
+      <p class="dia">「如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？我本頗為汝如是說此是真諦，餘皆虛妄言，汝來從我學梵行耶？」</p>
+      <p class="dia">鬘童子答曰：「不也，世尊！」</p>
+      <p class="dia">「鬘童子！汝本頗向我說，若世尊為我一向說世有常者，我當從世尊學梵行耶？」</p>
+      <p class="dia">鬘童子答曰：「不也，世尊！」</p>
+      <p class="dia">「如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？鬘童子！汝本頗向我說，若世尊為我一向說此是真諦，餘皆虛妄言者，我當從世尊學梵行耶？」</p>
+      <p class="dia">鬘童子答曰：「不也，世尊！」</p>
+      <p>世尊告曰：</p>
+      <p class="dia">「鬘童子！我本不向汝有所說，汝本亦不向我有所說，汝愚癡人！何故虛妄誣謗我耶？」</p>
+      <p>於是，尊者鬘童子為世尊面訶責數，內懷憂慼，低頭默然，失辯無言，如有所伺。</p>
+      <p>於是，世尊面訶鬘童子已，告諸比丘：</p>
+      <p class="dia">「若有愚癡人作如是念：『若世尊不為我一向說世有常者，我不從世尊學梵行。』彼愚癡人竟不得知，於其中間而命終也。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？若有愚癡人作如是念：『若世尊不為我一向說此是真諦，餘皆虛妄言者，我不從世尊學梵行。』彼愚癡人竟不得知，於其中間而命終也。</p>
+      <p class="dia">猶如有人身被毒箭，因毒箭故，受極重苦，彼{見}[有]親族憐念愍傷，為求利義饒益安隱，便求箭醫，然，彼人者方作是念：『未可拔箭！我應先知彼人如是姓、如是名、如是生？為長、短、麤、細？為黑、白、不黑不白？為剎利族、梵志、居士、工師族？為東方、南方、西方、{比}[北]方耶？未可拔箭！我應先知彼弓為柘、為桑、為槻、為角耶？未可拔箭！我應先知弓扎，彼為是牛筋、為麞鹿筋、為是絲耶？未可拔箭！我應先知弓色為黑、為白、為赤、為黃耶？未可拔箭！我應先知弓弦為筋、為絲、為紵、為麻耶？未可拔箭！我應先知箭簳為木、為竹耶？未可拔箭！我應先知箭纏為是牛筋、為麞鹿筋、為是絲耶？未可拔箭！我應先知箭羽為飄𪁢毛、為鵰鷲毛、為鵾雞毛、為鶴毛耶？未可拔箭！我應先知箭𨮹(鏑)為錍、為矛、為鈹刀耶？未可拔箭！我應先知作箭𨮹(鏑)師如是姓、如是名、如是生？為長、短、麤、細？為黑、白、不黑不白？為東方、西方、南方、北方耶？』彼人竟不得知，於其中間而命終也。</p>
+      <p class="dia">若有愚癡人作如是念：『若世尊不為我一向說世有常者，我不從世尊學梵行。』彼愚癡人竟不得知，於其中間而命終也。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？若有愚癡人作如是念：『若世尊不為我一向說此是真諦，餘皆虛妄言者，我不從世尊學梵行。』彼愚癡人竟不得知，於其中間而命終也。</p>
+      <p class="dia">世有常，因此見故，從我學梵行者，此事不然。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？因此見故，從我學梵行者，此事不然。世有常，有此見故，不從我學梵行者，此事不然。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？有此見故，不從我學梵行者，此事不然。</p>
+      <p class="dia">世有常，無此見故，從我學梵行者，此事不然。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？無此見故，從我學梵行者，此事不然。世有常，無此見故，從我學梵行者，此事不然。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？無此見故，不從我學梵行者，此事不然。</p>
+      <p class="dia">世有常者，有生、有老、有病、有死，愁慼、啼哭、憂苦、懊惱，如是，此淳大苦陰生。如是，世無常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終者，有生、有老、有病、有死，愁慼、啼哭、憂苦、懊惱，如是，此淳大苦陰生。</p>
+      <p class="dia">世有常，我不一向說此。以何等故，我不一向說此？此非義相應，非法相應，非梵行本，不趣智、不趣覺、不趣涅槃，是故，我不一向說此。如是，世無常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終，我不一向說此。以何等故，我不一向說此？此非義相應，非法相應，非梵行本，不趣智、不趣覺、不趣涅槃，是故，我不一向說此也。何等法我一向說耶？此義我一向說：苦、苦習、苦滅、苦滅道跡，我一向說。以何等故，我一向說此？此是義相應，是法相應，是梵行本，趣智、趣覺、趣於涅槃，是故，我一向說此。</p>
+      <p class="dia">是為：不可說者則不說，可說者則說，當如是持，當如是學。」</p>
+      <p>佛說如是，彼諸比丘聞佛所說，歡喜奉行。</p>
+    </div>
+  </div>
+</section>
+<!-- ===== 3 ===== -->
+<section class="slide" data-slide="3">
+  <div class="slide-inner">
+    <div class="aspects-head"><div class="kicker">場景 · 舍衛國勝林給孤獨園</div><h2>十個難題 · 世尊捨置不說</h2><div class="sub">鬘童子燕坐思惟：這些見解，世尊為什麼擱著不答？</div></div>
+    <div class="aspects c4"><div class="card"><div class="n">① 世間</div><div class="title">常否</div><div class="desc">世有常／<span class='k'>世無有常</span></div></div><div class="card"><div class="n">② 世間</div><div class="title">有底</div><div class="desc">世有底／<span class='k'>世無底</span></div></div><div class="card"><div class="n">③ 身心</div><div class="title">命與身</div><div class="desc">命即是身／<span class='k'>命異身異</span></div></div><div class="card"><div class="n">④ 如來</div><div class="title">死後</div><div class="desc">終／不終／<span class='k'>終不終／非終非不終</span></div></div></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">我聞如是：一時，佛遊舍衛國，在勝林給孤獨園。</span><span class="pp">爾時，尊者鬘童子獨安{靖}[靜]處，燕坐思惟，心作是念：「所謂此見，<span class="em">世尊捨置、除卻，不盡通說</span>，謂：世有常，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？<span class="em">我不欲此，我不忍此，我不可此</span>。</span></div></div>
+  </div>
+</section>
+<!-- ===== 4 ===== -->
+<section class="slide bigq" data-slide="4">
+  <div class="slide-inner">
+    <div class="kicker">鬘童子的條件</div><div class="q">一向說，<span class='em'>否則捨去</span></div><div class="dialog"><div class="b"><div class="who">若世尊一向說</div><div class="txt">我就從他學梵行。</div></div><div class="b"><div class="who">若世尊不一向說</div><div class="txt">我就去詰難他，捨他而去。</div></div></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">若世尊為我一向說世有常者，<span class="em">我從彼學梵行</span>；若世尊不為我一向說世有常者，<span class="em">我當難詰彼，捨之而去</span>。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？若世尊為我一向說此是真諦，餘皆虛妄言者，<span class="em">我從彼學梵行</span>；若世尊不為我一向說此是真諦，餘皆虛妄言者，<span class="em">我當難詰彼，捨之而去</span>。」</span></div></div>
+  </div>
+</section>
+<!-- ===== 5 ===== -->
+<section class="slide" data-slide="5">
+  <div class="slide-inner">
+    <div class="aspects-head"><div class="kicker">往詣佛所</div><h2>晡時出定 · 當面請問</h2><div class="sub">把心裡所想，原原本本向世尊說出</div></div>
+    <div class="qchain"><span class="node ">晡時從燕坐起</span><span class="arr">→</span><span class="node ">往詣佛所</span><span class="arr">→</span><span class="node ">稽首作禮</span><span class="arr">→</span><span class="node ">卻坐一面</span><span class="arr">→</span><span class="node no">白佛</span></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">於是，尊者鬘童子則於晡時從燕坐起，<span class="em">往詣佛所</span>，稽首作禮，卻坐一面，白曰：</span><span class="pp">「世尊！我今獨安{靖}[靜]處，燕坐思惟，心作是念：『所謂此見，世尊捨置除卻，不盡通說，謂：世有常，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？我不欲此，我不忍此，我不可此。</span></div></div>
+  </div>
+</section>
+<!-- ===== 6 ===== -->
+<section class="slide bigq" data-slide="6">
+  <div class="slide-inner">
+    <div class="kicker">當面要求</div><div class="q">知就說，<span class='em'>不知就直說不知</span></div><div class="dialog"><div class="b"><div class="who">若世尊一向知</div><div class="txt">世尊！請為我說。</div></div><div class="b"><div class="who">若世尊不一向知</div><div class="txt">請直說「不知」。</div></div></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">若世尊一向知世有常者，世尊！<span class="em">當為我說</span>。若世尊不一向知世有常者，<span class="em">當直言不知也</span>。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？若世尊一向知此是真諦，餘皆虛妄言者，世尊！<span class="em">當為我說</span>。若世尊不一向知此是真諦，餘皆虛妄言者，<span class="em">當直言不知也</span>。』」</span></div></div>
+  </div>
+</section>
+<!-- ===== 7 ===== -->
+<section class="slide" data-slide="7">
+  <div class="slide-inner">
+    <div class="aspects-head"><div class="kicker">世尊反問 ①②</div><h2>我曾這樣答應過你嗎？</h2><div class="sub">世尊不答十難，先問鬘童子當初為何出家</div></div>
+    <div class="aspects c2"><div class="card"><div class="n">反問 ①</div><div class="title">不也</div><div class="desc">我曾說「世有常」，<span class='k'>你才來學梵行</span>嗎？</div></div><div class="card"><div class="n">反問 ②</div><div class="title">不也</div><div class="desc">我曾說「此是真諦、餘皆虛妄」，<span class='k'>你才來學</span>嗎？</div></div></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">世尊問曰：</span><span class="pp">「鬘童子！我本頗為汝如是說世有常，汝來從我學梵行耶？」</span><span class="pp">鬘童子答曰：「<span class="em">不也，世尊！</span>」</span><span class="pp">「如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？我本頗為汝如是說此是真諦，餘皆虛妄言，汝來從我學梵行耶？」</span><span class="pp">鬘童子答曰：「<span class="em">不也，世尊！</span>」</span></div></div>
+  </div>
+</section>
+<!-- ===== 8 ===== -->
+<section class="slide" data-slide="8">
+  <div class="slide-inner">
+    <div class="aspects-head"><div class="kicker">世尊反問 ③④</div><h2>你曾這樣要求過我嗎？</h2><div class="sub">出家時，雙方都沒有立過這種條件</div></div>
+    <div class="aspects c2"><div class="card"><div class="n">反問 ③</div><div class="title">不也</div><div class="desc">你曾說「佛不說世有常，<span class='k'>我就不學</span>」嗎？</div></div><div class="card"><div class="n">反問 ④</div><div class="title">不也</div><div class="desc">你曾說「佛不說此是真諦，<span class='k'>我就不學</span>」嗎？</div></div></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">「鬘童子！汝本頗向我說，若世尊為我一向說世有常者，我當從世尊學梵行耶？」</span><span class="pp">鬘童子答曰：「<span class="em">不也，世尊！</span>」</span><span class="pp">「如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？鬘童子！汝本頗向我說，若世尊為我一向說此是真諦，餘皆虛妄言者，我當從世尊學梵行耶？」</span><span class="pp">鬘童子答曰：「<span class="em">不也，世尊！</span>」</span></div></div>
+  </div>
+</section>
+<!-- ===== 9 ===== -->
+<section class="slide bigq" data-slide="9">
+  <div class="slide-inner">
+    <div class="kicker">面訶</div><div class="q">我本不向汝有所說，<br><span class='em'>汝本亦不向我有所說</span></div><div class="dialog"><div class="b"><div class="who">世尊訶責</div><div class="txt">汝愚癡人！何故虛妄誣謗我耶？</div></div><div class="b"><div class="who">鬘童子</div><div class="txt">內懷憂慼，低頭默然，失辯無言。</div></div></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">世尊告曰：</span><span class="pp">「鬘童子！我本不向汝有所說，汝本亦不向我有所說，汝愚癡人！<span class="em">何故虛妄誣謗我耶</span>？」</span><span class="pp">於是，尊者鬘童子為世尊面訶責數，內懷憂慼，<span class="em">低頭默然，失辯無言</span>，如有所伺。</span></div></div>
+  </div>
+</section>
+<!-- ===== 10 ===== -->
+<section class="slide bigq" data-slide="10">
+  <div class="slide-inner">
+    <div class="kicker">告諸比丘</div><div class="q">竟不得知，<span class='em'>於其中間而命終</span></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">於是，世尊面訶鬘童子已，告諸比丘：</span><span class="pp">「若有愚癡人作如是念：『若世尊不為我一向說世有常者，我不從世尊學梵行。』<span class="em">彼愚癡人竟不得知，於其中間而命終也</span>。</span><span class="pp">如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？若有愚癡人作如是念：『若世尊不為我一向說此是真諦，餘皆虛妄言者，我不從世尊學梵行。』<span class="em">彼愚癡人竟不得知，於其中間而命終也</span>。</span></div></div>
+  </div>
+</section>
+<!-- ===== 11 ===== -->
+<section class="slide" data-slide="11">
+  <div class="slide-inner">
+    <div class="aspects-head"><div class="kicker">毒箭喻 ①</div><h2>先問射箭的人</h2><div class="sub">身中毒箭，親族請來箭醫，他卻說：「未可拔箭！」</div></div>
+    <div class="aspects "><div class="card"><div class="n">先問</div><div class="title">姓名</div><div class="desc">如是姓、如是名、<span class='k'>如是生</span></div></div><div class="card"><div class="n">先問</div><div class="title">身形</div><div class="desc">長短麤細</div></div><div class="card"><div class="n">先問</div><div class="title">膚色</div><div class="desc">黑、白、不黑不白</div></div><div class="card"><div class="n">先問</div><div class="title">種姓</div><div class="desc">剎利、梵志、居士、工師</div></div><div class="card"><div class="n">先問</div><div class="title">方位</div><div class="desc">東南西北</div></div></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">猶如有人<span class="em">身被毒箭</span>，因毒箭故，<span class="em">受極重苦</span>，彼{見}[有]親族憐念愍傷，為求利義饒益安隱，便求箭醫，然，彼人者方作是念：『<span class="em">未可拔箭！</span>我應先知彼人如是姓、如是名、如是生？為長、短、麤、細？為黑、白、不黑不白？為剎利族、梵志、居士、工師族？為東方、南方、西方、{比}[北]方耶？</span></div></div>
+  </div>
+</section>
+<!-- ===== 12 ===== -->
+<section class="slide" data-slide="12">
+  <div class="slide-inner">
+    <div class="aspects-head"><div class="kicker">毒箭喻 ②</div><h2>再問弓、問箭</h2><div class="sub">一連串「未可拔箭」，每一問都在拖延</div></div>
+    <div class="qchain chips"><span class="node">弓材</span><span class="node">弓扎</span><span class="node">弓色</span><span class="node">弓弦</span><span class="node">箭簳</span><span class="node">箭纏</span><span class="node">箭羽</span><span class="node">箭鏑</span></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp"><span class="em">未可拔箭！</span>我應先知彼弓為柘、為桑、為槻、為角耶？<span class="em">未可拔箭！</span>我應先知弓扎，彼為是牛筋、為麞鹿筋、為是絲耶？<span class="em">未可拔箭！</span>我應先知弓色為黑、為白、為赤、為黃耶？<span class="em">未可拔箭！</span>我應先知弓弦為筋、為絲、為紵、為麻耶？<span class="em">未可拔箭！</span>我應先知箭簳為木、為竹耶？<span class="em">未可拔箭！</span>我應先知箭纏為是牛筋、為麞鹿筋、為是絲耶？<span class="em">未可拔箭！</span>我應先知箭羽為飄𪁢毛、為鵰鷲毛、為鵾雞毛、為鶴毛耶？<span class="em">未可拔箭！</span>我應先知箭𨮹(鏑)為錍、為矛、為鈹刀耶？</span></div></div>
+  </div>
+</section>
+<!-- ===== 13 ===== -->
+<section class="slide bigq" data-slide="13">
+  <div class="slide-inner">
+    <div class="kicker">毒箭喻之結</div><div class="q">未拔箭，<span class='em'>先命終</span></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">未可拔箭！我應先知作箭𨮹(鏑)師如是姓、如是名、如是生？為長、短、麤、細？為黑、白、不黑不白？為東方、西方、南方、北方耶？』<span class="em">彼人竟不得知，於其中間而命終也</span>。</span><span class="pp">若有愚癡人作如是念：『若世尊不為我一向說世有常者，我不從世尊學梵行。』<span class="em">彼愚癡人竟不得知，於其中間而命終也</span>。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？若有愚癡人作如是念：『若世尊不為我一向說此是真諦，餘皆虛妄言者，我不從世尊學梵行。』<span class="em">彼愚癡人竟不得知，於其中間而命終也</span>。</span></div></div>
+  </div>
+</section>
+<!-- ===== 14 ===== -->
+<section class="slide" data-slide="14">
+  <div class="slide-inner">
+    <div class="aspects-head"><div class="kicker">此事不然 ①</div><h2>有此見，與梵行不相干</h2><div class="sub">持這些見解，不是來學梵行的理由，也不是不學的理由</div></div>
+    <div class="aspects c2"><div class="card"><div class="n">有此見 · 從我學</div><div class="title">此事不然</div><div class="desc">因這個見解<span class='k'>才來學</span>——不對。</div></div><div class="card"><div class="n">有此見 · 不從我學</div><div class="title">此事不然</div><div class="desc">有這個見解<span class='k'>就不學</span>——也不對。</div></div></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">世有常，因此見故，從我學梵行者，<span class="em">此事不然</span>。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？因此見故，從我學梵行者，<span class="em">此事不然</span>。世有常，有此見故，不從我學梵行者，<span class="em">此事不然</span>。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？有此見故，不從我學梵行者，<span class="em">此事不然</span>。</span></div></div>
+  </div>
+</section>
+<!-- ===== 15 ===== -->
+<section class="slide" data-slide="15">
+  <div class="slide-inner">
+    <div class="aspects-head"><div class="kicker">此事不然 ②</div><h2>無此見，也一樣不相干</h2><div class="sub">沒有這些見解，同樣不是學或不學的理由</div></div>
+    <div class="aspects c2"><div class="card"><div class="n">無此見 · 從我學</div><div class="title">此事不然</div><div class="desc">沒這個見解<span class='k'>才來學</span>——不對。</div></div><div class="card"><div class="n">無此見 · 不從我學</div><div class="title">此事不然</div><div class="desc">沒這個見解<span class='k'>就不學</span>——也不對。</div></div></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">世有常，無此見故，從我學梵行者，<span class="em">此事不然</span>。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？無此見故，從我學梵行者，<span class="em">此事不然</span>。世有常，無此見故，從我學梵行者，<span class="em">此事不然</span>。如是，世無有常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終耶？無此見故，不從我學梵行者，<span class="em">此事不然</span>。</span></div></div>
+  </div>
+</section>
+<!-- ===== 16 ===== -->
+<section class="slide" data-slide="16">
+  <div class="slide-inner">
+    <div class="aspects-head"><div class="kicker">淳大苦陰</div><h2>不管持哪一見 · 苦依然在</h2><div class="sub">答出了世間常不常，生老病死一樣都不少</div></div>
+    <div class="qchain"><span class="node ">十種見</span><span class="arr">→</span><span class="node no">生 · 老 · 病 · 死</span><span class="arr">→</span><span class="node ">愁慼 · 啼哭 · 憂苦 · 懊惱</span></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">世有常者，有生、有老、有病、有死，愁慼、啼哭、憂苦、懊惱，如是，<span class="em">此淳大苦陰生</span>。如是，世無常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終者，有生、有老、有病、有死，愁慼、啼哭、憂苦、懊惱，如是，<span class="em">此淳大苦陰生</span>。</span></div></div>
+  </div>
+</section>
+<!-- ===== 17 ===== -->
+<section class="slide" data-slide="17">
+  <div class="slide-inner">
+    <div class="aspects-head"><div class="kicker">不一向說</div><h2>為何不說 · 六個「不」</h2><div class="sub">這些問題對解脫沒有幫助，所以世尊不說</div></div>
+    <div class="qchain chips"><span class="node no">非義相應</span><span class="node no">非法相應</span><span class="node no">非梵行本</span><span class="node no">不趣智</span><span class="node no">不趣覺</span><span class="node no">不趣涅槃</span></div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">世有常，我不一向說此。以何等故，我不一向說此？此<span class="em">非義相應，非法相應，非梵行本，不趣智、不趣覺、不趣涅槃</span>，是故，我不一向說此。如是，世無常；世有底，世無底；命即是身，為命異身異；如來終，如來不終，如來終不終，如來亦非終亦非不終，我不一向說此。以何等故，我不一向說此？此<span class="em">非義相應，非法相應，非梵行本，不趣智、不趣覺、不趣涅槃</span>，是故，我不一向說此也。</span></div></div>
+  </div>
+</section>
+<!-- ===== 18 ===== -->
+<section class="slide" data-slide="18">
+  <div class="slide-inner five">
+    <div class="kicker">一向說</div>
+    <h2>世尊一向說的是 · 四諦</h2>
+    <div class="sub">是義相應、是法相應、是梵行本，趣智、趣覺、趣於涅槃</div>
+    <div class="five-grid four-grid">
+<div class="five-card"><div class="glyph">苦</div><div class="name">苦</div></div><div class="five-card"><div class="glyph">習</div><div class="name">苦習</div></div><div class="five-card"><div class="glyph">滅</div><div class="name">苦滅</div></div><div class="five-card"><div class="glyph">道</div><div class="name">苦滅道跡</div></div>
+    </div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">何等法我一向說耶？此義我一向說：<span class="em">苦、苦習、苦滅、苦滅道跡</span>，我一向說。以何等故，我一向說此？此是義相應，是法相應，是梵行本，趣智、趣覺、趣於涅槃，是故，我一向說此。</span></div></div>
+  </div>
+</section>
+<!-- ===== 19 ===== -->
+<section class="slide" data-slide="19">
+  <div class="slide-inner summary">
+    <div class="kicker">結攝</div>
+    <h2>可說則說 · 不可說則不說</h2>
+    <div class="steps-row">
+      <div class="st"><div class="n">不可說</div><div class="t">十難 · 捨置</div><div class="d">非義相應，不趣涅槃。</div></div>
+      <div class="st"><div class="n">可說</div><div class="t">四諦 · 一向說</div><div class="d">苦、習、滅、道。</div></div>
+      <div class="st"><div class="n">當如是</div><div class="t">持 · 學</div><div class="d">當如是持，當如是學。</div></div>
+    </div>
+    <div class="passage"><div class="tag">經文 · 中阿含 221</div><div class="ptxt"><span class="pp">是為：<span class="em">不可說者則不說，可說者則說</span>，當如是持，當如是學。」</span><span class="pp">佛說如是，彼諸比丘聞佛所說，歡喜奉行。</span></div></div>
+  </div>
+</section>
+<!-- ===== 20 ===== -->
+<section class="slide cta" data-slide="20">
+  <div class="slide-inner">
+    <div class="kicker">今日就試</div>
+    <h1>先拔箭 · 再說</h1>
+    <p class="lead">心裡那支箭——煩惱、焦慮——先拔出來。<br>箭是誰射的、用什麼弓，都可以等。</p>
+    <div class="cta-card">
+      <div class="label">今日實踐</div>
+      <div class="action">冒出「想不通就先不修」的念頭時，<br>問自己：我的箭拔了嗎？</div>
+      <div class="small">與解脫無關的問題 → 放下　｜　苦 · 習 · 滅 · 道 → 一向用功</div>
+    </div>
+  </div>
+</section>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+let cur = 0;
+const progress = document.getElementById('progress');
+const curPageEl = document.getElementById('curPage');
+const totalPageEl = document.getElementById('totalPage');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+totalPageEl.textContent = total;
+
+/* === 全域保險：任何一頁的內容都不得侵入右下角頁碼列的淨空區 ===
+   .slide 的 padding-bottom 已保留 --nav-safe（桌機 120px／手機 104px），
+   內容仍超高時（字型載入後行數變多、視窗變矮…）在此等比縮小 .slide-inner，
+   確保底部元素一律止於淨空區上緣，不會和 ‹ N/T › 同高疊字。 */
+function fitSlide(s){
+  const inner = s.querySelector('.slide-inner');
+  if(!inner) return;
+  if(s.classList.contains('sutra')) return;   // 全文頁靠 su-box 自己捲動，不縮放
+  inner.style.transform = 'none';
+  inner.style.marginBottom = '';
+  const cs = getComputedStyle(s);
+  const avail = s.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const need = Math.max(inner.offsetHeight, inner.scrollHeight);
+  if(avail > 0 && need > avail + 1){
+    const k = avail / need;
+    /* 只在小幅超出時等比縮小；要縮到 .78 以下就會傷字級可讀性，
+       那種情況改讓該頁自行捲動——.slide 的 padding-bottom 在捲到底時
+       同樣會保留 --nav-safe 淨空，底部內容不會落到頁碼列那一行。 */
+    if(k >= 0.78){
+      inner.style.transformOrigin = 'top center';
+      inner.style.transform = 'scale(' + k + ')';
+      /* 縮放不會改變版面框高度，補一個負的下外距把版面框收回到縮放後的實際底邊，
+         否則這一頁會留下一段可捲動的空白，滑鼠滾輪一滑內容就又頂到頁碼列。 */
+      inner.style.marginBottom = (avail - need) + 'px';
+    }
+  }
+}
+function fitAll(){ slides.forEach(fitSlide); }
+let fitTimer, fitting = false;
+function scheduleFit(){
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(() => { fitting = true; fitAll(); fitting = false; }, 80);
+}
+window.addEventListener('resize', scheduleFit);
+window.addEventListener('load', scheduleFit);
+document.addEventListener('fullscreenchange', scheduleFit);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleFit);
+/* 視窗尺寸變化不一定都會發 resize（全螢幕、分割視窗、行動裝置網址列收合…），
+   用 ResizeObserver 直接盯著實際版面高度，確保任何情況都會重算淨空。 */
+if(window.ResizeObserver){
+  new ResizeObserver(() => { if(!fitting) scheduleFit(); }).observe(document.documentElement);
+}
+scheduleFit();
+
+function go(i){
+  if(i < 0 || i >= total) return;
+  slides[cur].classList.remove('active');
+  cur = i;
+  slides[cur].classList.add('active');
+  progress.style.width = ((cur+1)/total*100) + '%';
+  curPageEl.textContent = cur + 1;
+  prevBtn.disabled = (cur === 0);
+  nextBtn.disabled = (cur === total - 1);
+  if(typeof updatePageNav === 'function') updatePageNav();
+}
+
+prevBtn.addEventListener('click', e => { e.stopPropagation(); go(cur - 1); });
+nextBtn.addEventListener('click', e => { e.stopPropagation(); go(cur + 1); });
+
+document.addEventListener('keydown', e => {
+  if(e.target && e.target.isContentEditable) return;
+  const inBox = e.target && e.target.id === 'suBox';
+  if(inBox && (e.key === 'PageDown' || e.key === 'PageUp' || e.key === 'Home' || e.key === 'End')) return;
+  if(e.key === 'ArrowRight' || e.key === 'PageDown') go(cur+1);
+  else if(e.key === 'ArrowLeft' || e.key === 'PageUp') go(cur-1);
+  else if(e.key === 'Home') go(0);
+  else if(e.key === 'End') go(total-1);
+  else if(e.key === 'f' || e.key === 'F'){
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+});
+
+progress.style.width = (1/total*100) + '%';
+prevBtn.disabled = true;
+
+/* === 三件套 A：白板（預設常開，無需 URL 參數） === */
+const wb = document.getElementById('wb-area');
+if(wb){
+  const WB_KEY = 'm221-wb';
+  const saved = localStorage.getItem(WB_KEY);
+  if(saved) wb.innerHTML = saved;
+  wb.addEventListener('input', () => localStorage.setItem(WB_KEY, wb.innerHTML));
+  ['keydown','keyup','keypress'].forEach(ev => wb.addEventListener(ev, e => e.stopPropagation()));
+}
+document.addEventListener('click', e => {
+  const sideWB = document.getElementById('side-wb');
+  if(!sideWB || !sideWB.classList.contains('open')) return;
+  if(e.target.closest('.side-wb-panel') || e.target.closest('.side-wb-toggle')) return;
+  e.preventDefault();
+  e.stopPropagation();
+  sideWB.classList.remove('open');
+}, true);
+
+/* 底部頁碼列已依 2026-08-06 規範移除，避免與各頁底部尾註疊字 */
+</script>
+</body>
+</html>
